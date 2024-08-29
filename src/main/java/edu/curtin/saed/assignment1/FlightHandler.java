@@ -1,35 +1,22 @@
 package edu.curtin.saed.assignment1;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class FlightHandler implements Runnable{
-    private final BlockingQueue<Runnable> flightQueue;
-    private final ThreadPoolExecutor executor;
-    private A a;
+    
+    private final ExecutorService executor;
+    private FlightLog log;
 
-    public FlightHandler(int threadCount, A a){
-        flightQueue = new LinkedBlockingQueue<>();
-        executor = new ThreadPoolExecutor(threadCount, threadCount, 0L,TimeUnit.MILLISECONDS, flightQueue);
-        this.a = a;
+    public FlightHandler(int threadCount, FlightLog log){
+        this.log = log;
+        this.executor = Executors.newFixedThreadPool(threadCount);
+        
+
     }
 
-    public void addFlightRequest(FlightRequest flightRequest){
-        executor.execute(() -> processFlight(flightRequest));
-    }
-
-    private void processFlight(FlightRequest flightRequest){
-        System.out.println("Processing flight from Airport " + flightRequest.getOrigin()
-                + " to Airport " + flightRequest.getDest());
-        try {
-            Thread.sleep(3000); // Simulate time to handle the flight
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
+    
     public void shutdown(){
         executor.shutdown();
         try{
@@ -45,7 +32,6 @@ public class FlightHandler implements Runnable{
 
     @Override
     public void run() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'run'");
+        
     }
 }

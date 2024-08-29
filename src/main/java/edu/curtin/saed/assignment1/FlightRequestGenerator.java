@@ -9,12 +9,12 @@ import javax.swing.SwingUtilities;
 public class FlightRequestGenerator  implements Runnable  {
     private int nAirports;
     private int originAirport;
-    private A a;
+    private FlightLog log;
 
-    public FlightRequestGenerator(int nAirports, int originAirport, A a){
+    public FlightRequestGenerator(int nAirports, int originAirport, FlightLog log){
         this.nAirports = nAirports;
         this.originAirport = originAirport;
-        this.a = a;
+        this.log = log;
 
     }
 
@@ -34,7 +34,7 @@ public class FlightRequestGenerator  implements Runnable  {
                 try {
                     int destinationAirport = Integer.parseInt(line);
                     FlightRequest flightRequest = new FlightRequest(originAirport, destinationAirport);
-                    a.addFlight(flightRequest);
+                    log.addFlight(flightRequest);
                     SwingUtilities.invokeLater(()->{
                         // Handle the destination airport (e.g., add to a list or process it)
                         System.out.println("Origin Airport: "+originAirport+" Destination Airport: " + destinationAirport);    

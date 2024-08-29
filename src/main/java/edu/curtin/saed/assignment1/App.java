@@ -10,7 +10,7 @@ import javax.swing.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This is demonstration code intended for you to modify. Currently, it sets up
@@ -74,7 +74,7 @@ public class App {
         textArea.append("Sidebar\n");
         textArea.append("Text\n");
 
-        A a = new A();
+        FlightLog log = new FlightLog();
         
         
         startBtn.addActionListener((event) -> {
@@ -83,11 +83,11 @@ public class App {
             
 
             for (int i = 0; i < 10; i++) {
-                FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, a);
+                FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, log);
                 new Thread(generator).start();
             }
 
-            FlightHandler flightManager = new FlightHandler(7, a);
+            FlightHandler flightManager = new FlightHandler(7, log);
             new Thread(flightManager).start();
             
         });

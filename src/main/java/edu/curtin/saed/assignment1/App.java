@@ -74,8 +74,8 @@ public class App {
         textArea.append("Sidebar\n");
         textArea.append("Text\n");
 
-        BlockingQueue<FlightRequest> flightQueue = new LinkedBlockingQueue<>();
-        FlightHandler flightHandler = new FlightHandler(4);
+        A a = new A();
+        
         
         startBtn.addActionListener((event) -> {
             System.out.println("Start button pressed");
@@ -83,24 +83,18 @@ public class App {
             
 
             for (int i = 0; i < 10; i++) {
-                FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, flightQueue);
+                FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, a);
                 new Thread(generator).start();
             }
 
-            while (true) {
-                try {
-                    FlightRequest request = flightQueue.take(); // Blocking call
-                    flightHandler.addFlightRequest(request);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+            FlightHandler flightManager = new FlightHandler(7, a);
+            new Thread(flightManager).start();
+            
         });
 
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
-            flightHandler.shutdown();
+            
         });
 
         window.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -138,7 +132,7 @@ public class App {
 
     
 
-    public static void setUpAirports(GridArea area, int height, int width) {
+    public static List<AirPort> setUpAirports(GridArea area, int height, int width) {
         Set<String> points = new HashSet<>();
         Random rand = new Random();
 
@@ -188,6 +182,7 @@ public class App {
 
             i++;
         }
+        return airPorts;
     }
 
 }

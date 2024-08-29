@@ -1,18 +1,19 @@
 package edu.curtin.saed.assignment1;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class FlightHandler {
+public class FlightHandler implements Runnable{
     private final BlockingQueue<Runnable> flightQueue;
     private final ThreadPoolExecutor executor;
+    private A a;
 
-    public FlightHandler(int threadCount){
+    public FlightHandler(int threadCount, A a){
         flightQueue = new LinkedBlockingQueue<>();
         executor = new ThreadPoolExecutor(threadCount, threadCount, 0L,TimeUnit.MILLISECONDS, flightQueue);
+        this.a = a;
     }
 
     public void addFlightRequest(FlightRequest flightRequest){
@@ -40,5 +41,11 @@ public class FlightHandler {
             Thread.currentThread().interrupt();
         
         }
+    }
+
+    @Override
+    public void run() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'run'");
     }
 }

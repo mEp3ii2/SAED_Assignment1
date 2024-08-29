@@ -3,19 +3,18 @@ package edu.curtin.saed.assignment1;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.concurrent.BlockingQueue;
 
 import javax.swing.SwingUtilities;
 
 public class FlightRequestGenerator  implements Runnable  {
     private int nAirports;
     private int originAirport;
-    private BlockingQueue<FlightRequest> flightQueue;
+    private A a;
 
-    public FlightRequestGenerator(int nAirports, int originAirport, BlockingQueue<FlightRequest> flightQueue){
+    public FlightRequestGenerator(int nAirports, int originAirport, A a){
         this.nAirports = nAirports;
         this.originAirport = originAirport;
-        this.flightQueue = flightQueue;
+        this.a = a;
 
     }
 
@@ -35,7 +34,7 @@ public class FlightRequestGenerator  implements Runnable  {
                 try {
                     int destinationAirport = Integer.parseInt(line);
                     FlightRequest flightRequest = new FlightRequest(originAirport, destinationAirport);
-                    flightQueue.put(flightRequest);
+                    a.addFlight(flightRequest);
                     SwingUtilities.invokeLater(()->{
                         // Handle the destination airport (e.g., add to a list or process it)
                         System.out.println("Origin Airport: "+originAirport+" Destination Airport: " + destinationAirport);    

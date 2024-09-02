@@ -5,10 +5,10 @@ public class AirTrafficEntity {
     private String name;
     private int id;
     private GridAreaIcon icon;
-    private int x;
-    private int y;
+    protected double x;
+    protected double y;
 
-    public AirTrafficEntity(String name,int id,GridAreaIcon icon,int x,int y){
+    public AirTrafficEntity(String name,int id,GridAreaIcon icon,double x,double y){
         this.name = name;
         this.id = id;
         this.icon = icon;
@@ -28,11 +28,13 @@ public class AirTrafficEntity {
         return icon;
     }
 
-    public int getX(){
+    public double getX(){
         return x;
     }
 
-    public int getY(){
+    public double getY(){
         return y;
     }
+
+   
 }

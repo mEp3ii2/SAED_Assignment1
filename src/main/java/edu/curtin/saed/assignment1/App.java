@@ -9,8 +9,8 @@ import javax.swing.*;
 
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * This is demonstration code intended for you to modify. Currently, it sets up
@@ -56,14 +56,7 @@ public class App {
 
         // caption
 
-        GridAreaIcon plane1Icon = new GridAreaIcon(
-                5, 3, 45.0, 1.0,
-                App.class.getClassLoader().getResource("plane.png"),
-                "Plane 1");
-        Plane plane1 = new Plane( "Plane 1", plane1Icon, 0, 0);
-        area.getIcons().add(plane1Icon);
-
-        setUpAirports(area, 10, 10);
+        List<AirPort> airports =setUpAirports(area, 10, 10);
         // Set up other key parts of the user interface. You'll also want to adjust
         // this.
 
@@ -74,26 +67,52 @@ public class App {
         textArea.append("Sidebar\n");
         textArea.append("Text\n");
 
-        FlightLog log = new FlightLog();
-        
-        
-        startBtn.addActionListener((event) -> {
+        FlightLog log = new FlightLog(); // this hold the blocking queue of request that both generators and handler interact with
+        GridAreaIcon plane1Icon = new GridAreaIcon(
+                5, 3, 45.0, 1.0,
+                App.class.getClassLoader().getResource("plane.png"),
+                "Plane 1");
+        Plane testPlane = new Plane("tester", plane1Icon, 0, 0);
+        area.getIcons().add(plane1Icon);
+        startBtn.addActionListener((event) -> { //this is where the fun begins
             System.out.println("Start button pressed");
             textArea.append("Hello\n");
-            
-
-            for (int i = 0; i < 10; i++) {
+            testPlane.getIcon().setShown(true);
+            area.repaint();
+            boolean run = true;
+            while (run) {
+                double[] newCords = planeMovement.calcNextPosition(7, 9, testPlane);
+                testPlane.setX(newCords[0]);
+                testPlane.setY(newCords[1]);
+                area.getIcons().add(newIcon(newCords[0],newCords[1],45.0,1.0,"Plane 1"));
+                if(testPlane.getX() ==7&&testPlane.getY()==9){
+                    run = false;
+                }
+                area.repaint();
+                System.out.println("Plane current cords. X:"+testPlane.getX()+" Y:"+testPlane.getY());
+                try{
+                    Thread.sleep(100);
+                }catch(InterruptedException e){
+                    System.out.println("Idk");
+                }
+            }
+            testPlane.getIcon().setShown(false);
+            /*for (int i = 0; i < 10; i++) { // create ten instances of request generators one for each airport
                 FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, log);
                 new Thread(generator).start();
             }
+            
+            System.out.println("Beinging flight handler");
 
-            FlightHandler flightManager = new FlightHandler(7, log);
-            new Thread(flightManager).start();
+            FlightHandler flightManager = new FlightHandler(7, log,airports); 
+            flightManager.addGridObsv(area);// 
+            new Thread(flightManager).start();*/
             
         });
 
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
+            
             
         });
 
@@ -175,7 +194,7 @@ public class App {
             area.getIcons().add(tempIcon);
 
             // Create airport instance
-            AirPort temp = new AirPort("AirPort " + i, tempIcon,x, y);
+            AirPort temp = new AirPort("AirPort " + i, tempIcon,x, y,generatePlanes(x,y));
 
             // Add to collection
             airPorts.add(temp);
@@ -185,4 +204,22 @@ public class App {
         return airPorts;
     }
 
+    public static BlockingQueue<Plane> generatePlanes(double x, double y){
+        
+        GridAreaIcon plane1Icon = new GridAreaIcon(
+                5, 3, 45.0, 1.0,
+                App.class.getClassLoader().getResource("plane.png"),
+                "Plane 1");
+        BlockingQueue<Plane> planes = new ArrayBlockingQueue<>(100);
+
+        for(int i =0;i<10;i++){
+            planes.add(new Plane("idk", plane1Icon, x, y));
+        }
+
+        return planes;
+    }
+
+    public static GridAreaIcon newIcon(double x, double y, double rotation, double scale,String caption){
+        return new GridAreaIcon(x, y, rotation, scale, App.class.getClassLoader().getResource("plane.png"), caption);
+    }
 }

@@ -1,6 +1,6 @@
 package edu.curtin.saed.assignment1;
 
-import java.util.concurrent.ArrayBlockingQueue;
+
 import java.util.concurrent.BlockingQueue;
 
 public class AirPort extends AirTrafficEntity {
@@ -8,20 +8,20 @@ public class AirPort extends AirTrafficEntity {
     private static int nextId = 1;
     private BlockingQueue<Plane> planes;
 
-    public AirPort(String name,GridAreaIcon icon,int y, int x){
+    public AirPort(String name,GridAreaIcon icon,int y, int x,BlockingQueue<Plane> planes){
         super(name, nextId++,icon, x,y);
-        planes = new ArrayBlockingQueue<>(10);
+        this.planes = planes;
     }
 
     public int getId(){
         return super.getId();
     }
 
-    public int getX(){
+    public double getX(){
         return super.getX();
     }
 
-    public int getY(){
+    public double getY(){
         return super.getY();
     }
 

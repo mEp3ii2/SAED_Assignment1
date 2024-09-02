@@ -29,7 +29,7 @@ import java.util.List; // To use java.util.List (and not java.awt.List).
  * Remember to call area.repaint() to ask the GUI to redraw the panel after you've modified
  * something. If you're making several changes at once, only call it once at the end.
  */
-public class GridArea extends JPanel
+public class GridArea extends JPanel implements gridUpdateObsv
 {
     private double gridWidth;
     private double gridHeight;
@@ -142,5 +142,10 @@ public class GridArea extends JPanel
             caption,
             (int) ((icon.getX() + 0.5) * gridSquareSize - fm.stringWidth(caption) / 2.0),
             (int) ((icon.getY() + 1.0) * gridSquareSize) + fm.getHeight());
+    }
+
+    @Override
+    public void gridUpdateEvent() {
+            this.repaint();            
     }
 }

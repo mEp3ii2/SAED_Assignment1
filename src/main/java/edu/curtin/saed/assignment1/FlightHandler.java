@@ -6,7 +6,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 public class FlightHandler implements Runnable{
     
@@ -15,11 +17,15 @@ public class FlightHandler implements Runnable{
     private List<AirPort> airports;
     private volatile boolean running = true;
     private List<gridUpdateObsv> gridUpdateObsvs = new ArrayList<>();
+    private GridArea grid;
+    private JTextArea textArea;
 
-    public FlightHandler(int threadCount, FlightLog log, List<AirPort> airports){
+    public FlightHandler(int threadCount, FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea){
         this.log = log;
         this.executor = Executors.newFixedThreadPool(threadCount);
         this.airports = airports;
+        this.grid = grid;
+        this.textArea = textArea;
     }
 
     @Override
@@ -40,40 +46,67 @@ public class FlightHandler implements Runnable{
     }
 
     private void processFlightRequest(FlightRequest request){
-        //check int aiport and grab plane
-        System.out.println("Hellloooooooooooooo");
-        boolean tripComplete = false;
-        Plane plane = null;
         try {
             AirPort origin = getAirPort(request.getOrigin());
             AirPort dest = getAirPort(request.getDest());
-            if(origin != null && dest != null){
-                while(!tripComplete){
-                    
-                    plane = origin.getPlane();
-                    plane.getIcon().setShown(true);                    
-                    notifyGridOsbv();
-                    double[] newCords = planeMovement.calcNextPosition(dest.getX(),dest.getY(),plane);
+            
+            if (origin != null && dest != null) {
+                Plane plane = origin.getPlane();
+                plane.getIcon().setShown(true);
+                SwingUtilities.invokeLater(() -> grid.repaint());
+                SwingUtilities.invokeLater(() -> textArea.append("Flight started from " + origin.getId() + " to destination " + dest.getId() + "\n"));
+                // Move plane using the SwingWorker
+                movePlane(dest.getX(), dest.getY(), plane);
+    
+                dest.setPlane(plane);
+                SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin.getId() + " to destination " + dest.getId() + " has finished\n"));
+            }
+        } catch (InterruptedException e) {
+            System.out.println("processFlightRequest interrupted");
+        }
+    
+    }
+
+    private void movePlane(double destX, double destY, Plane plane) {
+        //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
+        SwingWorker<Void, Void> worker = new SwingWorker<Void,Void>() {
+            //process plane movement
+            @Override
+            protected Void doInBackground() throws Exception {
+                boolean run = true;
+                while (run) {
+                    double[] newCords = planeMovement.calcNextPosition(destX, destY, plane);
                     plane.setX(newCords[0]);
                     plane.setY(newCords[1]);
-                    if(plane.getX() == dest.getX() && plane.getY() == dest.getY()){
-                        tripComplete = true;
+                    plane.getIcon().setPosition(newCords[0], newCords[1]);
+
+                    SwingUtilities.invokeLater(()->grid.repaint());
+
+                    if (plane.getX() == destX && plane.getY() == destY) {
+                        run = false;
                     }
-                    notifyGridOsbv();
-                    Thread.sleep(100);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        System.out.println("Plane movement interrupted");
+                    }
                 }
-                System.out.println("Howdy");
+                return null;
+            }
+
+            //final update once background eg plane movement fin
+            @Override
+            protected void done() {
+                // Final update or clean-up if needed
                 plane.getIcon().setShown(false);
-                dest.setPlane(plane);
-                //need to service plane as well but for now can go straight into new airport
-                notifyGridOsbv();
-                
-            }                   
-        } catch (InterruptedException e) {
-            System.out.println("Flight request processor interupted");
-        }
-        
+                grid.repaint();
+            }
+        };
+
+        // Execute the SwingWorker
+        worker.execute();
     }
+
 
     private AirPort getAirPort(int id){
         for (AirPort airPort : airports) {

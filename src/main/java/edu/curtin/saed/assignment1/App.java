@@ -68,45 +68,21 @@ public class App {
         textArea.append("Text\n");
 
         FlightLog log = new FlightLog(); // this hold the blocking queue of request that both generators and handler interact with
-        GridAreaIcon plane1Icon = new GridAreaIcon(
-                5, 3, 45.0, 1.0,
-                App.class.getClassLoader().getResource("plane.png"),
-                "Plane 1");
-        Plane testPlane = new Plane("tester", plane1Icon, 0, 0);
-        area.getIcons().add(plane1Icon);
+        
         startBtn.addActionListener((event) -> { //this is where the fun begins
             System.out.println("Start button pressed");
             textArea.append("Hello\n");
-            testPlane.getIcon().setShown(true);
-            area.repaint();
-            boolean run = true;
-            while (run) {
-                double[] newCords = planeMovement.calcNextPosition(7, 9, testPlane);
-                testPlane.setX(newCords[0]);
-                testPlane.setY(newCords[1]);
-                area.getIcons().add(newIcon(newCords[0],newCords[1],45.0,1.0,"Plane 1"));
-                if(testPlane.getX() ==7&&testPlane.getY()==9){
-                    run = false;
-                }
-                area.repaint();
-                System.out.println("Plane current cords. X:"+testPlane.getX()+" Y:"+testPlane.getY());
-                try{
-                    Thread.sleep(100);
-                }catch(InterruptedException e){
-                    System.out.println("Idk");
-                }
-            }
-            testPlane.getIcon().setShown(false);
-            /*for (int i = 0; i < 10; i++) { // create ten instances of request generators one for each airport
+           
+            for (int i = 0; i < 10; i++) { // create ten instances of request generators one for each airport
                 FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, log);
                 new Thread(generator).start();
             }
             
-            System.out.println("Beinging flight handler");
+            System.out.println("Begining flight handler");
 
-            FlightHandler flightManager = new FlightHandler(7, log,airports); 
+            FlightHandler flightManager = new FlightHandler(7, log,airports,area,textArea); 
             flightManager.addGridObsv(area);// 
-            new Thread(flightManager).start();*/
+            new Thread(flightManager).start();
             
         });
 
@@ -194,7 +170,7 @@ public class App {
             area.getIcons().add(tempIcon);
 
             // Create airport instance
-            AirPort temp = new AirPort("AirPort " + i, tempIcon,x, y,generatePlanes(x,y));
+            AirPort temp = new AirPort("AirPort " + i, tempIcon,y, x,generatePlanes(i,x,y,area));
 
             // Add to collection
             airPorts.add(temp);
@@ -204,16 +180,17 @@ public class App {
         return airPorts;
     }
 
-    public static BlockingQueue<Plane> generatePlanes(double x, double y){
+    public static BlockingQueue<Plane> generatePlanes(int id,double x, double y,GridArea area){
         
-        GridAreaIcon plane1Icon = new GridAreaIcon(
-                5, 3, 45.0, 1.0,
-                App.class.getClassLoader().getResource("plane.png"),
-                "Plane 1");
         BlockingQueue<Plane> planes = new ArrayBlockingQueue<>(100);
 
         for(int i =0;i<10;i++){
-            planes.add(new Plane("idk", plane1Icon, x, y));
+            GridAreaIcon plane1Icon = new GridAreaIcon(
+                5, 3, 45.0, 1.0,
+                App.class.getClassLoader().getResource("plane.png"),
+                "Plane "+id+"."+i);
+            area.getIcons().add(plane1Icon);
+            planes.add(new Plane("Plane"+id+"."+i, plane1Icon, x, y));
         }
 
         return planes;

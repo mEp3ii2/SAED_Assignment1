@@ -2,6 +2,7 @@ package edu.curtin.saed.assignment1;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -63,10 +64,10 @@ public class FlightHandler implements Runnable{
                 SwingUtilities.invokeLater(() -> textArea.append("Flight started from " + origin.getId() + " to destination " + dest.getId() + "\n"));
                 // Move plane using the SwingWorker
                 
-                movePlane(dest.getX(), dest.getY(), plane);
+                movePlane(dest.getX(), dest.getY(), plane,dest);
                 
-                dest.setPlane(plane);
                 SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin.getId() + " to destination " + dest.getId() + " has finished\n"));
+                dest.setPlane(plane);                              
             }
         } catch (InterruptedException e) {
             System.out.println("processFlightRequest interrupted");
@@ -74,16 +75,16 @@ public class FlightHandler implements Runnable{
     
     }
 
-    private void movePlane(double destX, double destY, Plane plane) {
+    private String movePlane(double destX, double destY, Plane plane, AirPort dest) {
         synchronized(mutex){
             currFlights++;
             updateStatus();
         }
         //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
-        SwingWorker<Void, Void> worker = new SwingWorker<Void,Void>() {
+        SwingWorker<String, Void> worker = new SwingWorker<String,Void>() {
             //process plane movement
             @Override
-            protected Void doInBackground() throws Exception {
+            protected String doInBackground() throws Exception {
                 boolean run = true;
                 while (run) {
                     double[] newCords = planeMovement.calcNextPosition(destX, destY, plane);
@@ -102,25 +103,46 @@ public class FlightHandler implements Runnable{
                         System.out.println("Plane movement interrupted");
                     }
                 }
-                return null;
+
+                synchronized(mutex){
+                    currService++;
+                    updateStatus();
+                }
+                return planeService.service(plane.getId(), dest.getId());
             }
 
             //final update once background eg plane movement fin
             @Override
             protected void done() {
-                //remove plane from grid and repaint 
-                plane.getIcon().setShown(false);
-                grid.repaint();
-                synchronized(mutex){
-                    currFlights--;
-                    completedFlights++;
-                    updateStatus();
-                }
+                try{
+                    
+                    plane.getIcon().setShown(false);
+                    grid.repaint();
+
+                    String serviceMsg = get();
+                
+                    //remove plane from grid and repaint 
+                    
+                    synchronized(mutex){
+                        currFlights--;
+                        completedFlights++; 
+                        updateStatus();
+                    }
+
+                    SwingUtilities.invokeLater(()-> textArea.append(serviceMsg+"\n"));
+                    synchronized(mutex){
+                        currService--;
+                        updateStatus();
+                    }
+                }catch(InterruptedException | ExecutionException e){
+                    System.out.println("Plane Trip interrupted");
+                }                            
             }
         };
 
         // Execute the SwingWorker
         worker.execute();
+        return "";
     }
 
 

@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.swing.JLabel;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -19,13 +20,19 @@ public class FlightHandler implements Runnable{
     private List<gridUpdateObsv> gridUpdateObsvs = new ArrayList<>();
     private GridArea grid;
     private JTextArea textArea;
+    private JLabel status;
+    private int currFlights =0;
+    private int completedFlights =0;
+    private int currService =0;
+    private final Object mutex = new Object();
 
-    public FlightHandler(int threadCount, FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea){
+    public FlightHandler(FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea, JLabel status){
         this.log = log;
-        this.executor = Executors.newFixedThreadPool(threadCount);
+        this.executor = Executors.newCachedThreadPool();
         this.airports = airports;
         this.grid = grid;
         this.textArea = textArea;
+        this.status = status;
     }
 
     @Override
@@ -53,11 +60,11 @@ public class FlightHandler implements Runnable{
             if (origin != null && dest != null) {
                 Plane plane = origin.getPlane();
                 plane.getIcon().setShown(true);
-                SwingUtilities.invokeLater(() -> grid.repaint());
                 SwingUtilities.invokeLater(() -> textArea.append("Flight started from " + origin.getId() + " to destination " + dest.getId() + "\n"));
                 // Move plane using the SwingWorker
+                
                 movePlane(dest.getX(), dest.getY(), plane);
-    
+                
                 dest.setPlane(plane);
                 SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin.getId() + " to destination " + dest.getId() + " has finished\n"));
             }
@@ -68,6 +75,10 @@ public class FlightHandler implements Runnable{
     }
 
     private void movePlane(double destX, double destY, Plane plane) {
+        synchronized(mutex){
+            currFlights++;
+            updateStatus();
+        }
         //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
         SwingWorker<Void, Void> worker = new SwingWorker<Void,Void>() {
             //process plane movement
@@ -97,9 +108,14 @@ public class FlightHandler implements Runnable{
             //final update once background eg plane movement fin
             @Override
             protected void done() {
-                // Final update or clean-up if needed
+                //remove plane from grid and repaint 
                 plane.getIcon().setShown(false);
                 grid.repaint();
+                synchronized(mutex){
+                    currFlights--;
+                    completedFlights++;
+                    updateStatus();
+                }
             }
         };
 
@@ -149,5 +165,11 @@ public class FlightHandler implements Runnable{
             SwingUtilities.invokeLater(()->obs.gridUpdateEvent());
             
         }
+    }
+
+    public void updateStatus(){
+        SwingUtilities.invokeLater(()->{
+            status.setText("Birds in the air: "+currFlights+" Planes being serviced: "+currService+" Total Trips: "+completedFlights);
+        });
     }
 }

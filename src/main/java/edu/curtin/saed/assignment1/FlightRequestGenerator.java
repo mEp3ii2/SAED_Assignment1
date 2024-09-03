@@ -51,8 +51,10 @@ public class FlightRequestGenerator  implements Runnable  {
             // When you need to end the simulation
             proc.destroy();
 
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            System.out.println("Request Generator interrupted");
+        }catch(IOException e ){
+            System.out.println("IO exception occured with saed_flight_requests");
         }
     }
 }

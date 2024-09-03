@@ -68,27 +68,34 @@ public class App {
         textArea.append("Text\n");
 
         FlightLog log = new FlightLog(); // this hold the blocking queue of request that both generators and handler interact with
-        
+        FlightHandler flightManager = new FlightHandler(log,airports,area,textArea,statusText); 
+        List<Thread> threads = new ArrayList<>();
         startBtn.addActionListener((event) -> { //this is where the fun begins
             System.out.println("Start button pressed");
             textArea.append("Hello\n");
            
             for (int i = 0; i < 10; i++) { // create ten instances of request generators one for each airport
-                FlightRequestGenerator generator = new FlightRequestGenerator(10, i + 1, log);
-                new Thread(generator).start();
+                FlightRequestGenerator generator = new FlightRequestGenerator(10, i, log);
+                Thread t = new Thread(generator);
+                threads.add(t);
+                t.start();
             }
             
             System.out.println("Begining flight handler");
 
-            FlightHandler flightManager = new FlightHandler(7, log,airports,area,textArea); 
+            
             flightManager.addGridObsv(area);// 
             new Thread(flightManager).start();
+            startBtn.setEnabled(false);
             
         });
 
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
-            
+            flightManager.shutdown();
+            for (Thread thread : threads) {                
+                thread.interrupt();
+            }
             
         });
 
@@ -186,10 +193,12 @@ public class App {
 
         for(int i =0;i<10;i++){
             GridAreaIcon plane1Icon = new GridAreaIcon(
-                5, 3, 45.0, 1.0,
+                x, y, 45.0, 1.0,
                 App.class.getClassLoader().getResource("plane.png"),
                 "Plane "+id+"."+i);
+            plane1Icon.setShown(false);
             area.getIcons().add(plane1Icon);
+
             planes.add(new Plane("Plane"+id+"."+i, plane1Icon, x, y));
         }
 

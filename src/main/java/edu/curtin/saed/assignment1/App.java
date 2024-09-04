@@ -84,7 +84,7 @@ public class App {
             System.out.println("Begining flight handler");
 
             
-            flightManager.addGridObsv(area);// 
+            
             new Thread(flightManager).start();
             startBtn.setEnabled(false);
             
@@ -92,10 +92,10 @@ public class App {
 
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
-            flightManager.shutdown();
             for (Thread thread : threads) {                
                 thread.interrupt();
             }
+            flightManager.shutdown();
             
         });
 

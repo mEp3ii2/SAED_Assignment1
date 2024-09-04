@@ -2,6 +2,7 @@ package edu.curtin.saed.assignment1;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,7 +19,6 @@ public class FlightHandler implements Runnable{
     private FlightLog log;
     private List<AirPort> airports;
     private volatile boolean running = true;
-    private List<gridUpdateObsv> gridUpdateObsvs = new ArrayList<>();
     private GridArea grid;
     private JTextArea textArea;
     private JLabel status;
@@ -26,6 +26,7 @@ public class FlightHandler implements Runnable{
     private int completedFlights =0;
     private int currService =0;
     private final Object mutex = new Object();
+    private final List<SwingWorker<String,Void>> workers = new CopyOnWriteArrayList<>();
 
     public FlightHandler(FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea, JLabel status){
         this.log = log;
@@ -47,8 +48,6 @@ public class FlightHandler implements Runnable{
         }catch(InterruptedException e){
             Thread.currentThread().interrupt();
             System.out.println("FlightHandler interrupted");
-        }finally{
-            shutdownThreadPool();
         }
         
     }
@@ -76,17 +75,14 @@ public class FlightHandler implements Runnable{
     }
 
     private String movePlane(double destX, double destY, Plane plane, AirPort dest) {
-        synchronized(mutex){
-            currFlights++;
-            updateStatus();
-        }
+        
         //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
         SwingWorker<String, Void> worker = new SwingWorker<String,Void>() {
             //process plane movement
             @Override
             protected String doInBackground() throws Exception {
                 boolean run = true;
-                while (run) {
+                while (run && !isCancelled()) {
                     double[] newCords = planeMovement.calcNextPosition(destX, destY, plane);
                     plane.setX(newCords[0]);
                     plane.setY(newCords[1]);
@@ -103,7 +99,11 @@ public class FlightHandler implements Runnable{
                         System.out.println("Plane movement interrupted");
                     }
                 }
-
+                if(isCancelled()){
+                    return "Operation Cancelled";
+                }
+                plane.getIcon().setShown(false);
+                SwingUtilities.invokeLater(()->grid.repaint());
                 synchronized(mutex){
                     currService++;
                     updateStatus();
@@ -116,8 +116,13 @@ public class FlightHandler implements Runnable{
             protected void done() {
                 try{
                     
-                    plane.getIcon().setShown(false);
-                    grid.repaint();
+                    if(isCancelled()){
+                        //plane.getIcon().setShown(false);
+                        grid.repaint();
+                        return;
+                    }
+                    //plane.getIcon().setShown(false);
+                    //grid.repaint();
 
                     String serviceMsg = get();
                 
@@ -136,10 +141,16 @@ public class FlightHandler implements Runnable{
                     }
                 }catch(InterruptedException | ExecutionException e){
                     System.out.println("Plane Trip interrupted");
-                }                            
+                }finally{
+                    workers.remove(this);
+                }                     
             }
         };
-
+        workers.add(worker);
+        synchronized(mutex){
+            currFlights++;
+            updateStatus();
+        }
         // Execute the SwingWorker
         worker.execute();
         return "";
@@ -156,42 +167,21 @@ public class FlightHandler implements Runnable{
         return null;
     }
 
-    public void shutdown(){
-        running = false;
-        Thread.currentThread().interrupt();
-    }
-
-    private void shutdownThreadPool(){
-        executor.shutdown();
-        try{
-            if(!executor.awaitTermination(5, TimeUnit.SECONDS)){
-                executor.shutdownNow();
-            }
-        }catch(InterruptedException e){
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-
-    }
-
-    public void addGridObsv(gridUpdateObsv obs){
-        gridUpdateObsvs.add(obs);
-    }
-
-    public void removeGridObsv(gridUpdateObsv obs){
-        gridUpdateObsvs.remove(obs);
-    }
-
-    public void notifyGridOsbv(){
-        for(var obs: gridUpdateObsvs){
-            SwingUtilities.invokeLater(()->obs.gridUpdateEvent());
-            
-        }
-    }
-
-    public void updateStatus(){
+    public synchronized void updateStatus(){
         SwingUtilities.invokeLater(()->{
             status.setText("Birds in the air: "+currFlights+" Planes being serviced: "+currService+" Total Trips: "+completedFlights);
+        });
+    }
+
+    public void shutdown(){
+        running = false;
+        executor.shutdownNow();
+        for (SwingWorker<String,Void> worker : workers) {
+            worker.cancel(true);
+        }
+        SwingUtilities.invokeLater(() -> {
+            textArea.append("All operations stopped.\n");
+            updateStatus(); // Update the status to reflect the current state
         });
     }
 }

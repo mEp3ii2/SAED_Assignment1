@@ -96,12 +96,10 @@ public class App {
         // changes status of its over and interrupts all threads
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
-            textArea.append("End button Clicked\n");
             if(!itsOver){
                 closingDown(flightManager, threads, generators);           
             }
             setItsOver(itsOver);
-            
         });
 
         // checks itsOverStatus if false end button hasnt been pressed so calls closingDown Method

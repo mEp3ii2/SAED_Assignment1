@@ -120,14 +120,16 @@ public class FlightHandler implements Runnable{
             SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin + " to destination " + dest.getId() + " has finished\n"));
             PlaneService planeService = new PlaneService();
             String serviceMsg = planeService.service(plane.getId(), dest.getId());
-            if(!serviceMsg.isBlank()){
+            if(!serviceMsg.isBlank() && !flag){
                 SwingUtilities.invokeLater(() -> textArea.append(serviceMsg+"\n"));
+                synchronized(mutex){
+                    currService--;
+                    updateStatus();
+                    dest.setPlane(plane); 
+                }
             }
-            synchronized(mutex){
-                currService--;
-                updateStatus();
-            }
-            dest.setPlane(plane); 
+            
+            
         }catch(InterruptedException e){
             System.out.println("Flight Interrupted");
         }        

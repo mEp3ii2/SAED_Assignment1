@@ -13,14 +13,17 @@ public class AirPort extends AirTrafficEntity {
         this.planes = planes;
     }
 
+    @Override //pmd told me too
     public int getId(){
         return super.getId();
     }
-
+    
+    @Override
     public double getX(){
         return super.getX();
     }
 
+    @Override
     public double getY(){
         return super.getY();
     }

@@ -10,10 +10,12 @@ public class Plane extends AirTrafficEntity{
         super(name, nextId++,icon, x, y);
     }
 
+    @Override
     public double getX(){
         return super.getX();
     }
 
+    @Override
     public double getY(){
         return super.getY();
     }

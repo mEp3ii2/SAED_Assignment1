@@ -10,6 +10,7 @@ public class FlightRequestGenerator  implements Runnable  {
     private int nAirports;
     private int originAirport;
     private FlightLog log;
+    private BufferedReader br;
 
     public FlightRequestGenerator(int nAirports, int originAirport, FlightLog log){
         this.nAirports = nAirports;
@@ -27,7 +28,7 @@ public class FlightRequestGenerator  implements Runnable  {
                              String.valueOf(originAirport)});
 
             // Create a BufferedReader to read the process output
-            BufferedReader br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            br = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 
             String line;
             while ((line = br.readLine()) != null) {
@@ -44,7 +45,7 @@ public class FlightRequestGenerator  implements Runnable  {
                     System.err.println("Invalid data received: " + line);
                 }
             }
-
+            br.close();
             // Optionally, wait for the process to complete or destroy it later
             proc.waitFor(); // Wait for the process to complete
 
@@ -55,6 +56,14 @@ public class FlightRequestGenerator  implements Runnable  {
             System.out.println("Request Generator interrupted");
         }catch(IOException e ){
             System.out.println("IO exception occured with saed_flight_requests");
+        }
+    }
+
+    public void closeResource(){
+        try{
+            br.close();
+        }catch(IOException e){
+            System.out.println("Error on closing request gen reader");
         }
     }
 }

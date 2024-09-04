@@ -37,8 +37,7 @@ public class App {
             try {
                 start();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                System.out.println("Note sure how this happened but it did");
             }
         }); // Equivalent to JavaFX's Platform.runLater().
     }
@@ -56,7 +55,7 @@ public class App {
 
         // caption
 
-        List<AirPort> airports =setUpAirports(area, 10, 10);
+        List<AirPort> airports =createAirports(area, 10, 10);
         // Set up other key parts of the user interface. You'll also want to adjust
         // this.
 
@@ -70,12 +69,14 @@ public class App {
         FlightLog log = new FlightLog(); // this hold the blocking queue of request that both generators and handler interact with
         FlightHandler flightManager = new FlightHandler(log,airports,area,textArea,statusText); 
         List<Thread> threads = new ArrayList<>();
+        List<FlightRequestGenerator> generators = new ArrayList<>();
         startBtn.addActionListener((event) -> { //this is where the fun begins
             System.out.println("Start button pressed");
             textArea.append("Hello\n");
            
             for (int i = 0; i < 10; i++) { // create ten instances of request generators one for each airport
                 FlightRequestGenerator generator = new FlightRequestGenerator(10, i, log);
+                generators.add(generator);
                 Thread t = new Thread(generator);
                 threads.add(t);
                 t.start();
@@ -92,9 +93,14 @@ public class App {
 
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
+            //close readers first then generator threads
+            for (FlightRequestGenerator flightRequestGenerator : generators) {
+                flightRequestGenerator.closeResource();
+            }
             for (Thread thread : threads) {                
                 thread.interrupt();
             }
+            
             flightManager.shutdown();
             
         });
@@ -134,7 +140,7 @@ public class App {
 
     
 
-    public static List<AirPort> setUpAirports(GridArea area, int height, int width) {
+    public static List<AirPort> createAirports(GridArea area, int height, int width) {
         Set<String> points = new HashSet<>();
         Random rand = new Random();
 

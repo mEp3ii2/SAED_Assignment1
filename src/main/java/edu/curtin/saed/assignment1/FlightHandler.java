@@ -1,12 +1,12 @@
 package edu.curtin.saed.assignment1;
 
-import java.util.ArrayList;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+
 
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
@@ -77,13 +77,13 @@ public class FlightHandler implements Runnable{
     private String movePlane(double destX, double destY, Plane plane, AirPort dest) {
         
         //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
-        SwingWorker<String, Void> worker = new SwingWorker<String,Void>() {
+        SwingWorker<String, Void> worker = new SwingWorker<>() {
             //process plane movement
             @Override
             protected String doInBackground() throws Exception {
                 boolean run = true;
                 while (run && !isCancelled()) {
-                    double[] newCords = planeMovement.calcNextPosition(destX, destY, plane);
+                    double[] newCords = PlaneMovement.calcNextPosition(destX, destY, plane);
                     plane.setX(newCords[0]);
                     plane.setY(newCords[1]);
                     plane.getIcon().setPosition(newCords[0], newCords[1]);
@@ -108,7 +108,7 @@ public class FlightHandler implements Runnable{
                     currService++;
                     updateStatus();
                 }
-                return planeService.service(plane.getId(), dest.getId());
+                return PlaneService.service(plane.getId(), dest.getId());
             }
 
             //final update once background eg plane movement fin
@@ -167,9 +167,16 @@ public class FlightHandler implements Runnable{
         return null;
     }
 
-    public synchronized void updateStatus(){
-        SwingUtilities.invokeLater(()->{
-            status.setText("Birds in the air: "+currFlights+" Planes being serviced: "+currService+" Total Trips: "+completedFlights);
+    public void updateStatus(){
+        SwingUtilities.invokeLater(() -> {
+            // Synchronize only the block that accesses shared variables
+            String statusText;
+            synchronized (mutex) {
+                statusText = "Birds in the air: " + currFlights + 
+                             " Planes being serviced: " + currService + 
+                             " Total Trips: " + completedFlights;
+            }
+            status.setText(statusText);
         });
     }
 
@@ -183,5 +190,6 @@ public class FlightHandler implements Runnable{
             textArea.append("All operations stopped.\n");
             updateStatus(); // Update the status to reflect the current state
         });
+        PlaneService.closeResource();
     }
 }

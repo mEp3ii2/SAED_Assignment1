@@ -2,16 +2,14 @@ package edu.curtin.saed.assignment1;
 
 
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
+import java.util.concurrent.TimeUnit;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
-import javax.swing.SwingWorker;
+
 
 public class FlightHandler implements Runnable{
     
@@ -26,7 +24,8 @@ public class FlightHandler implements Runnable{
     private int completedFlights =0;
     private int currService =0;
     private final Object mutex = new Object();
-    private final List<SwingWorker<String,Void>> workers = new CopyOnWriteArrayList<>();//ww.baeldung.com/java-copy-on-write-arraylist
+    private volatile boolean flag = false;
+    
 
     public FlightHandler(FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea, JLabel status){
         this.log = log;
@@ -77,87 +76,62 @@ public class FlightHandler implements Runnable{
     
     }
 
-    private String movePlane(double destX, double destY, Plane plane, AirPort dest, int origin) {
-        
-        //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
-        SwingWorker<String, Void> worker = new SwingWorker<>() {
-            //process plane movement
-            @Override
-            protected String doInBackground() throws Exception {
-                plane.getIcon().setShown(true);
-                synchronized(mutex){
-                    currFlights++;
-                    updateStatus();
+    private void movePlane(double destX, double destY, Plane plane, AirPort dest, int origin) {
+        try{
+            boolean run = true;
+            plane.getIcon().setShown(true);
+            synchronized(mutex){
+                currFlights++;
+                updateStatus();
+            }
+            while (run) {
+                //double check
+                if(flag){
+                    return;
                 }
-                boolean run = true;
-                while (run && !isCancelled()) {
-                    double[] newCords = PlaneMovement.calcNextPosition(destX, destY, plane);
-                    plane.setX(newCords[0]);
-                    plane.setY(newCords[1]);
-                    plane.getIcon().setPosition(newCords[0], newCords[1]);
+                if (Thread.currentThread().isInterrupted()) {//can never be too safe
+                    return; // Exit the method if interrupted
+                }
+                double[] newCords = PlaneMovement.calcNextPosition(destX, destY, plane);
+                plane.setX(newCords[0]);
+                plane.setY(newCords[1]);
+                plane.getIcon().setPosition(newCords[0], newCords[1]);
 
-                    SwingUtilities.invokeLater(()->grid.repaint());
-
-                    if (plane.getX() == destX && plane.getY() == destY) {
-                        run = false;
-                    }
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        System.out.println("Plane movement interrupted");
-                    }
-                }
-                if(isCancelled()){
-                    return "Operation Cancelled";
-                }
-                // flight fin remove from screen
-                plane.getIcon().setShown(false);
                 SwingUtilities.invokeLater(()->grid.repaint());
 
-                
-                
-                synchronized(mutex){
-                    completedFlights++; 
-                    currService++;
-                    currFlights--;
-                    updateStatus();
+                if (plane.getX() == destX && plane.getY() == destY) {
+                    run = false;
                 }
-                SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin + " to destination " + dest.getId() + " has finished\n"));
-                PlaneService planeService = new PlaneService();
-                return planeService.service(plane.getId(), dest.getId());
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    System.out.println("Plane movement interrupted");
+                }
             }
 
-            //final update once background eg plane movement fin
-            @Override
-            protected void done() {
-                try{
-                    
-                    if(isCancelled()){
-                        grid.repaint();
-                        return;
-                    }
-                    String serviceMsg = get();
-                    //remove plane from grid and repaint 
-                    SwingUtilities.invokeLater(()-> textArea.append(serviceMsg+"\n"));
-                    synchronized(mutex){
-                        currService--;
-                        updateStatus();
-                    }
-                    dest.setPlane(plane);    
-                }catch(InterruptedException | ExecutionException e){
-                    System.out.println("Plane Trip interrupted");
-                }finally{
-                    workers.remove(this);
-                }                     
+            plane.getIcon().setShown(false);
+            SwingUtilities.invokeLater(()->grid.repaint());
+            synchronized(mutex){
+                completedFlights++; 
+                currService++;
+                currFlights--;
+                updateStatus();
             }
-        };
-        workers.add(worker);
-        
-        // Execute the SwingWorker
-        worker.execute();
-        return "";
+            SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin + " to destination " + dest.getId() + " has finished\n"));
+            PlaneService planeService = new PlaneService();
+            String serviceMsg = planeService.service(plane.getId(), dest.getId());
+            if(!serviceMsg.isBlank()){
+                SwingUtilities.invokeLater(() -> textArea.append(serviceMsg+"\n"));
+            }
+            synchronized(mutex){
+                currService--;
+                updateStatus();
+            }
+            dest.setPlane(plane); 
+        }catch(InterruptedException e){
+            System.out.println("Flight Interrupted");
+        }        
     }
-
 
     private AirPort getAirPort(int id){
         for (AirPort airPort : airports) {
@@ -183,11 +157,26 @@ public class FlightHandler implements Runnable{
     }
 
     public void shutdown(){
+        flag = true;
         running = false;
-        executor.shutdownNow();
-        for (SwingWorker<String,Void> worker : workers) {
-            worker.cancel(true);
+        executor.shutdownNow(); 
+        try {
+        // Wait for existing tasks to finish
+        if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+            // If the executor did not terminate within the timeout, force shutdown
+            executor.shutdownNow();
+            // Wait for tasks to respond to being cancelled
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                System.err.println("Executor did not terminate");
+            }
         }
+    } catch (InterruptedException ex) {
+        // (Re-)Cancel if current thread also interrupted
+        executor.shutdownNow();
+        // Preserve interrupt status
+        Thread.currentThread().interrupt();
+    }
+        
         SwingUtilities.invokeLater(() -> {
             textArea.append("All operations stopped.\n");
             updateStatus(); // Update the status to reflect the current state

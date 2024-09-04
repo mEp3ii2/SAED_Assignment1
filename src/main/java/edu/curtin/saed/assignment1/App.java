@@ -94,12 +94,14 @@ public class App {
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
             //close readers first then generator threads
-            for (FlightRequestGenerator flightRequestGenerator : generators) {
-                flightRequestGenerator.closeResource();
-            }
             for (Thread thread : threads) {                
                 thread.interrupt();
             }
+            
+            for (FlightRequestGenerator flightRequestGenerator : generators) {
+                flightRequestGenerator.closeResource();
+            }
+            
             
             flightManager.shutdown();
             

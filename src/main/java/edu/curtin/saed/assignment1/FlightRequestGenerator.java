@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import javax.swing.SwingUtilities;
 
 public class FlightRequestGenerator  implements Runnable  {
     private int nAirports;
@@ -36,10 +35,6 @@ public class FlightRequestGenerator  implements Runnable  {
                     int destinationAirport = Integer.parseInt(line);
                     FlightRequest flightRequest = new FlightRequest(originAirport, destinationAirport);
                     log.addFlight(flightRequest);
-                    SwingUtilities.invokeLater(()->{
-                        // Handle the destination airport (e.g., add to a list or process it)
-                        System.out.println("Origin Airport: "+originAirport+" Destination Airport: " + destinationAirport);    
-                    });
                 } catch (NumberFormatException e) {
                     // Handle invalid data (e.g., log or ignore)
                     System.err.println("Invalid data received: " + line);

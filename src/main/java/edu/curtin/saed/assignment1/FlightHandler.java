@@ -26,11 +26,11 @@ public class FlightHandler implements Runnable{
     private int completedFlights =0;
     private int currService =0;
     private final Object mutex = new Object();
-    private final List<SwingWorker<String,Void>> workers = new CopyOnWriteArrayList<>();
+    private final List<SwingWorker<String,Void>> workers = new CopyOnWriteArrayList<>();//ww.baeldung.com/java-copy-on-write-arraylist
 
     public FlightHandler(FlightLog log, List<AirPort> airports,GridArea grid, JTextArea textArea, JLabel status){
         this.log = log;
-        this.executor = Executors.newCachedThreadPool();
+        this.executor = Executors.newFixedThreadPool(10);
         this.airports = airports;
         this.grid = grid;
         this.textArea = textArea;
@@ -43,13 +43,17 @@ public class FlightHandler implements Runnable{
         try{
             while(running){
                 FlightRequest request = log.getFlight();//does this not block when nothing inside it?
-                executor.submit(()-> processFlightRequest(request));
+                if(!executor.isShutdown()){
+                    executor.submit(()-> processFlightRequest(request));
+                }else{
+                    System.out.println("Executor Shutdown, not taking any more requests");
+                }
+                
             }
         }catch(InterruptedException e){
             Thread.currentThread().interrupt();
             System.out.println("FlightHandler interrupted");
-        }
-        
+        }   
     }
 
     private void processFlightRequest(FlightRequest request){
@@ -58,15 +62,14 @@ public class FlightHandler implements Runnable{
             AirPort dest = getAirPort(request.getDest());
             
             if (origin != null && dest != null) {
-                Plane plane = origin.getPlane();
-                plane.getIcon().setShown(true);
+                Plane plane = origin.getPlane();   
+                double rotation = PlaneMovement.calculateRotationAngle(dest.getX(),dest.getY(),plane.getX(),plane.getY());
+                plane.getIcon().setRotation(rotation);             
+
                 SwingUtilities.invokeLater(() -> textArea.append("Flight started from " + origin.getId() + " to destination " + dest.getId() + "\n"));
                 // Move plane using the SwingWorker
                 
-                movePlane(dest.getX(), dest.getY(), plane,dest);
-                
-                SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin.getId() + " to destination " + dest.getId() + " has finished\n"));
-                dest.setPlane(plane);                              
+                movePlane(dest.getX(), dest.getY(), plane,dest,origin.getId());                          
             }
         } catch (InterruptedException e) {
             System.out.println("processFlightRequest interrupted");
@@ -74,13 +77,18 @@ public class FlightHandler implements Runnable{
     
     }
 
-    private String movePlane(double destX, double destY, Plane plane, AirPort dest) {
+    private String movePlane(double destX, double destY, Plane plane, AirPort dest, int origin) {
         
         //idk we had to use swing worker but just trying to call sqingutils didn't cut it so idk
         SwingWorker<String, Void> worker = new SwingWorker<>() {
             //process plane movement
             @Override
             protected String doInBackground() throws Exception {
+                plane.getIcon().setShown(true);
+                synchronized(mutex){
+                    currFlights++;
+                    updateStatus();
+                }
                 boolean run = true;
                 while (run && !isCancelled()) {
                     double[] newCords = PlaneMovement.calcNextPosition(destX, destY, plane);
@@ -102,13 +110,21 @@ public class FlightHandler implements Runnable{
                 if(isCancelled()){
                     return "Operation Cancelled";
                 }
+                // flight fin remove from screen
                 plane.getIcon().setShown(false);
                 SwingUtilities.invokeLater(()->grid.repaint());
+
+                
+                
                 synchronized(mutex){
+                    completedFlights++; 
                     currService++;
+                    currFlights--;
                     updateStatus();
                 }
-                return PlaneService.service(plane.getId(), dest.getId());
+                SwingUtilities.invokeLater(() -> textArea.append("Flight from " + origin + " to destination " + dest.getId() + " has finished\n"));
+                PlaneService planeService = new PlaneService();
+                return planeService.service(plane.getId(), dest.getId());
             }
 
             //final update once background eg plane movement fin
@@ -117,28 +133,17 @@ public class FlightHandler implements Runnable{
                 try{
                     
                     if(isCancelled()){
-                        //plane.getIcon().setShown(false);
                         grid.repaint();
                         return;
                     }
-                    //plane.getIcon().setShown(false);
-                    //grid.repaint();
-
                     String serviceMsg = get();
-                
                     //remove plane from grid and repaint 
-                    
-                    synchronized(mutex){
-                        currFlights--;
-                        completedFlights++; 
-                        updateStatus();
-                    }
-
                     SwingUtilities.invokeLater(()-> textArea.append(serviceMsg+"\n"));
                     synchronized(mutex){
                         currService--;
                         updateStatus();
                     }
+                    dest.setPlane(plane);    
                 }catch(InterruptedException | ExecutionException e){
                     System.out.println("Plane Trip interrupted");
                 }finally{
@@ -147,10 +152,7 @@ public class FlightHandler implements Runnable{
             }
         };
         workers.add(worker);
-        synchronized(mutex){
-            currFlights++;
-            updateStatus();
-        }
+        
         // Execute the SwingWorker
         worker.execute();
         return "";

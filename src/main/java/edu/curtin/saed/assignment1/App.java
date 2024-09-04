@@ -70,6 +70,8 @@ public class App {
         FlightHandler flightManager = new FlightHandler(log,airports,area,textArea,statusText); 
         List<Thread> threads = new ArrayList<>();
         List<FlightRequestGenerator> generators = new ArrayList<>();
+        Boolean itsOver = false;
+
         startBtn.addActionListener((event) -> { //this is where the fun begins
             System.out.println("Start button pressed");
             textArea.append("Hello\n");
@@ -91,27 +93,25 @@ public class App {
             
         });
 
+        // changes status of its over and interrupts all threads
         endBtn.addActionListener((event) -> {
             System.out.println("End button pressed");
-            //close readers first then generator threads
-            for (Thread thread : threads) {                
-                thread.interrupt();
+            textArea.append("End button Clicked\n");
+            if(!itsOver){
+                closingDown(flightManager, threads, generators);           
             }
-            
-            for (FlightRequestGenerator flightRequestGenerator : generators) {
-                flightRequestGenerator.closeResource();
-            }
-            
-            
-            flightManager.shutdown();
+            setItsOver(itsOver);
             
         });
 
+        // checks itsOverStatus if false end button hasnt been pressed so calls closingDown Method
         window.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         window.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {
-                System.out.println("Window closed");
+                if(itsOver == false){
+                    closingDown(flightManager,threads,generators);
+                }
             }
         });
 
@@ -140,8 +140,30 @@ public class App {
         window.setVisible(true);
     }
 
-    
 
+    //closing of app, called on either window close or end buton
+    public static void closingDown(FlightHandler flightManager, List<Thread> threads, List<FlightRequestGenerator> generators ){
+
+        
+
+        for (Thread thread : threads) {                
+            thread.interrupt();
+        }
+
+        flightManager.shutdown();
+        
+        for (FlightRequestGenerator flightRequestGenerator : generators) {
+            flightRequestGenerator.closeResource();
+        }            
+    }
+
+    // used to change staus of itsOver because i cant do it in the end button for some reason
+    public static void setItsOver(boolean itsOver){
+        itsOver = false;
+    }
+
+
+    // creates a list of ten airports ensuring that their is at least a space of one tile between each
     public static List<AirPort> createAirports(GridArea area, int height, int width) {
         Set<String> points = new HashSet<>();
         Random rand = new Random();
@@ -195,6 +217,7 @@ public class App {
         return airPorts;
     }
 
+    // generates a list of ten planes to be given to each airport
     public static BlockingQueue<Plane> generatePlanes(int id,double x, double y,GridArea area){
         
         BlockingQueue<Plane> planes = new ArrayBlockingQueue<>(100);
@@ -213,6 +236,7 @@ public class App {
         return planes;
     }
 
+    //idk if this was mine of part of the starter code
     public static GridAreaIcon newIcon(double x, double y, double rotation, double scale,String caption){
         return new GridAreaIcon(x, y, rotation, scale, App.class.getClassLoader().getResource("plane.png"), caption);
     }

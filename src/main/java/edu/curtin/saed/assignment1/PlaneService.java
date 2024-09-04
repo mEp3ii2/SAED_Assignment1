@@ -7,7 +7,7 @@ import java.io.InputStreamReader;
 public class PlaneService {
     private static BufferedReader br;
 
-    public static String service(int planeId, int airportId){
+    public String service(int planeId, int airportId){
         try{
             Process proc = Runtime.getRuntime().exec(
                 new String[]{"comms/bin/saed_plane_service",
@@ -20,16 +20,18 @@ public class PlaneService {
             return output;
             
         }catch(InterruptedException e){
-            System.out.println("gjdfbg");
+            System.out.println("Servicing Interrupted");
         }catch(IOException e){
-            System.out.println("jifdsnbgjd");
+            System.out.println("I/O Exception during plane servicing");
         }
         return null;
     }
 
     public static void closeResource(){
         try {
-            br.close();
+            if(br != null){
+                br.close();
+            }
         } catch (IOException e) {
             System.out.println("Error on closing plane service buffered reader");
         }

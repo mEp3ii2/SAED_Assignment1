@@ -26,4 +26,10 @@ public class PlaneMovement {
         return new double[]{nextX,nextY};
 
     }
+
+    public static double calculateRotationAngle(double destX, double destY, double currentX, double currentY) {
+        double deltaX = destX - currentX;
+        double deltaY = destY - currentY;
+        return Math.toDegrees(Math.atan2(deltaY, deltaX))+90.0;//plus 90 to account for icon allignment
+    }
 }

@@ -33,16 +33,26 @@ when the endBtn is clicked the threads for the request generators are interrupte
 
 ## B) Modified Version Challenges
 
-### Application being a real time visulisation
+For such as system there is a few important non-functional requirements that come to mind to ensure a well working system.
 
-Challenges from this will be the recieving of data, as these flights could be across a country, continent or globe this proposes the issue of how you would recieve these transmissions of data it would invole either satellites or having multiple ground stations to cover the scope your working with. With this as well based on the time taken to transmit the data the aircraft would no longer be in that position so you would need to be getting additional data such as velocity and say a timestamp so that based on that our system could roughtly calculate the position of the plane. The aircraft would also not be constantly transmitting this data but would rather be on a set time scale so with that in mind you would need to be able to calculate the journey of the plane based on the given data to calculate the positions until the next lot of data. Data could also be lost as well in transmit which leads to the system either having to suspend the flight tracking or continue to estimate until the next successful data transmission, suspending the display of a flight is also not advised as it may cause stress to viewers.
+Issues such as performance in regards to the transmission of data to ensure that the system runs smoothly in real time. NFRs for this would be ensuring that the system maintains low mantency to ensure real time flight data is being displayed. Challanges from this is that flight data that originates from the aircraft will have to be transported through a lot of intermediate services/devices to reach the user, and considering that there are alot of important services in airline systems requiring this data they will be priorisited over non-critical user services such as ours making maintinaing low latency challenging. Another requirement might be that the system should be able to simulate/estimate flight data to ensure that the system appears to be continoulsy tracking inbetween recieving data transmissions from aircraft this might require functional requirements such as using timestamps and tracking speed to calculate positions. 
 
-As the scale increases as well would need to look at the resources required to process the amount of flights being tracked.
-
-### Mobile App
-
+Scalabilty also becomes an issue, as a application that is avaliable to users all around the world the system should be able to track and display flights all around the world.
+By 2024, the number of flights is forecasted to reach a new high of 40.1 million (Statista Research Department, 2024), this comes to just shy of 110 thousand flights a day, to be able to track and display this data to users proves to be significant challenge with the infastructre needed being immense unless using a infastructure as a service solution both proving to be expensive solutions to the problem. Solutions to this can be that only flights that are present on the users screen are displayed and as the scroll across the globe/screen flights are brought into view and others are removed. You could also restrict the users view so that they can't zoom out to far to reduce the amounts of flights being displayed or set a limit and make it so the user has to select what they wish to view instead of just showing everything such as the users can only be tracking at most x numbers of flights at a time.
 
 
-### Past Flight Visulisation
+Having a mobile app will singificantly increase total user and also the average concurrent users as well as compared to just being a desktop application. The same issues mentioned earlier will be present but also further exacerbrated since the scale will increase dramatically making is significantly harder to ensure a seemless experience for all users. Issues that stem from mobile as well is that maintaining persistent connections is taxing on the mobile devices battery. while on the topic of connection unlike desktop devices that are usually connected to there home network mobile devices will be relying on the aviavle connection in there area this can lead to periods where the user experiences limited connection or no connection for moments of time and the app should be able to handle this to ensure the app works smoothly, therefore the app should be able to handle transmission between online and offline states.Of course you can't talk about mobile with out mentioning the standard qestion of apple or andriod or both as it is now most developers choose both and therefor to be successfull the app must support both operating systems.
+
+To be able to allow the user to be able to visualise past flights, the system must be able to store all flights in a distrubuted system to then allow for any user to download the view past flights in a timely manner subject to there network connection. Storing of flight data must comply with the various regulations as they apply such as regulations for the country of departure, the destination country and also the which country the airline is registred in as well must be complied with.
+
 
 ## Architectural approach
+
+
+
+**References:**
+
+Statista Research Department. (2024, June 28). Global air traffic - number of flights 2004-2024. Statista. https://www.statista.com/statistics/564769/airline-industry-number-of-flights/
+
+
+
